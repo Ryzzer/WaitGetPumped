@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wait. Get Pumped!</title>
+    <style>
+        :root {
+            --bg-color: #121214;
+            --btn-color: #1e1e24;
+            --btn-active: #2e2e38;
+            
+            /* Text Color Coding */
+            --color-45: #4ade80;  /* Green */
+            --color-60: #facc15;  /* Yellow */
+            --color-90: #fb923c;  /* Orange */
+            --color-120: #f87171; /* Coral Red */
+        }
+
+        body {
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            user-select: none;
+            overflow: hidden;
+        }
+
+        .title-header {
+            color: var(--color-45); /* Matches the 45 Sec button green */
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 30px;
+            letter-spacing: -0.5px;
+            text-align: center;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            width: 90vw;
+            max-width: 800px;
+        }
+
+        .timer-btn {
+            background-color: var(--btn-color);
+            border: 3px solid #2a2a32;
+            border-radius: 24px;
+            height: 25vh; 
+            font-size: 3rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.4);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        /* Specific Button Text Color Coding */
+        .btn-45 { color: var(--color-45); }
+        .btn-60 { color: var(--color-60); }
+        .btn-90 { color: var(--color-90); }
+        .btn-120 { color: var(--color-120); }
+
+        .timer-btn span {
+            font-size: 1.2rem;
+            font-weight: 500;
+            opacity: 0.7;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .timer-btn:hover {
+            border-color: #444452;
+            transform: scale(1.02);
+        }
+
+        .timer-btn:active {
+            transform: scale(0.98);
+        }
+
+        /* Visual running state */
+        .timer-btn.running {
+            background-color: var(--btn-active);
+        }
+        
+        .timer-btn.running.btn-45 { border-color: var(--color-45); box-shadow: 0 0 20px rgba(74, 222, 128, 0.2); }
+        .timer-btn.running.btn-60 { border-color: var(--color-60); box-shadow: 0 0 20px rgba(250, 204, 21, 0.2); }
+        .timer-btn.running.btn-90 { border-color: var(--color-90); box-shadow: 0 0 20px rgba(251, 146, 60, 0.2); }
+        .timer-btn.running.btn-120 { border-color: var(--color-120); box-shadow: 0 0 20px rgba(248, 113, 113, 0.2); }
+    </style>
+</head>
+<body>
+
+    <div class="title-header">Wait. Get Pumped!</div>
+
+    <div class="container">
+        <button class="timer-btn btn-45" onclick="startTimer(45, this)">45 <span>Sec</span></button>
+        <button class="timer-btn btn-60" onclick="startTimer(60, this)">60 <span>Sec</span></button>
+        <button class="timer-btn btn-90" onclick="startTimer(90, this)">90 <span>Sec</span></button>
+        <button class="timer-btn btn-120" onclick="startTimer(120, this)">120 <span>Sec</span></button>
+    </div>
+
+    <script>
+        const DEFAULT_TITLE = "Wait. Get Pumped!";
+        let activeTimers = new Map();
+
+        function startTimer(duration, buttonElement) {
+            if (activeTimers.has(buttonElement)) {
+                resetButton(buttonElement);
+                updateTabTitle();
+                return;
+            }
+
+            buttonElement.classList.add('running');
+            
+            let timeLeft = duration;
+            buttonElement.innerHTML = `${timeLeft}<span>s</span>`;
+
+            const intervalId = setInterval(() => {
+                timeLeft--;
+                
+                if (timeLeft <= 0) {
+                    playPleasantChime();
+                    resetButton(buttonElement);
+                } else {
+                    buttonElement.innerHTML = `${timeLeft}<span>s</span>`;
+                    // Update active time tracked in the map
+                    activeTimers.get(buttonElement).timeLeft = timeLeft;
+                }
+                updateTabTitle();
+            }, 1000);
+
+            // Save interval data and the live remaining time
+            activeTimers.set(buttonElement, { intervalId, originalDuration: duration, timeLeft: timeLeft });
+            updateTabTitle();
+        }
+
+        function resetButton(buttonElement) {
+            if (activeTimers.has(buttonElement)) {
+                clearInterval(activeTimers.get(buttonElement).intervalId);
+                const originalDuration = activeTimers.get(buttonElement).originalDuration;
+                activeTimers.delete(buttonElement);
+                
+                buttonElement.innerHTML = `${originalDuration} <span>Sec</span>`;
+            }
+            buttonElement.classList.remove('running');
+        }
+
+        // Dynamically computes and pushes the lowest remaining time into the browser tab title
+        function updateTabTitle() {
+            if (activeTimers.size === 0) {
+                document.title = DEFAULT_TITLE;
+                return;
+            }
+
+            // Find the lowest time remaining out of all active timers
+            let lowestTime = Infinity;
+            for (let timerData of activeTimers.values()) {
+                if (timerData.timeLeft < lowestTime) {
+                    lowestTime = timerData.timeLeft;
+                }
+            }
+
+            if (lowestTime !== Infinity) {
+                document.title = `[${lowestTime}s] ${DEFAULT_TITLE}`;
+            }
+        }
+
+        function playPleasantChime() {
+            try {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                const ctx = new AudioContext();
+                
+                // Chime 1 (Starts at 0.0 seconds)
+                createTone(ctx, 659.25, 0.0, 0.4);
+                createTone(ctx, 830.61, 0.08, 0.4);
+
+                // Chime 2 (Starts at 0.5 seconds)
+                createTone(ctx, 659.25, 0.5, 0.4);
+                createTone(ctx, 830.61, 0.58, 0.4);
+
+                // Chime 3 (Starts at 1.0 seconds)
+                createTone(ctx, 659.25, 1.0, 0.4);
+                createTone(ctx, 830.61, 1.08, 0.4);
+            } catch (e) {
+                console.error("Audio playback failed:", e);
+            }
+        }
+
+        function createTone(ctx, frequency, startTime, duration) {
+            const osc = ctx.createOscillator();
+            const gainNode = ctx.createGain();
+
+            osc.type = 'sine';
+            osc.frequency.value = frequency;
+
+            gainNode.gain.setValueAtTime(0, ctx.currentTime + startTime);
+            gainNode.gain.linearRampToValueAtTime(0.2, ctx.currentTime + startTime + 0.02);
+            gainNode.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + startTime + duration);
+
+            osc.connect(gainNode);
+            gainNode.connect(ctx.destination);
+
+            osc.start(ctx.currentTime + startTime);
+            osc.stop(ctx.currentTime + startTime + duration);
+        }
+    </script>
+</body>
+</html>
