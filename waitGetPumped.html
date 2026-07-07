@@ -112,11 +112,13 @@
     </div>
 
     <script>
+        const DEFAULT_TITLE = "Wait. Get Pumped!";
         let activeTimers = new Map();
 
         function startTimer(duration, buttonElement) {
             if (activeTimers.has(buttonElement)) {
                 resetButton(buttonElement);
+                updateTabTitle();
                 return;
             }
 
@@ -133,10 +135,15 @@
                     resetButton(buttonElement);
                 } else {
                     buttonElement.innerHTML = `${timeLeft}<span>s</span>`;
+                    // Update active time tracked in the map
+                    activeTimers.get(buttonElement).timeLeft = timeLeft;
                 }
+                updateTabTitle();
             }, 1000);
 
-            activeTimers.set(buttonElement, { intervalId, originalDuration: duration });
+            // Save interval data and the live remaining time
+            activeTimers.set(buttonElement, { intervalId, originalDuration: duration, timeLeft: timeLeft });
+            updateTabTitle();
         }
 
         function resetButton(buttonElement) {
@@ -150,13 +157,31 @@
             buttonElement.classList.remove('running');
         }
 
-        // Generates three sequential chimes via Web Audio API
+        // Dynamically computes and pushes the lowest remaining time into the browser tab title
+        function updateTabTitle() {
+            if (activeTimers.size === 0) {
+                document.title = DEFAULT_TITLE;
+                return;
+            }
+
+            // Find the lowest time remaining out of all active timers
+            let lowestTime = Infinity;
+            for (let timerData of activeTimers.values()) {
+                if (timerData.timeLeft < lowestTime) {
+                    lowestTime = timerData.timeLeft;
+                }
+            }
+
+            if (lowestTime !== Infinity) {
+                document.title = `[${lowestTime}s] ${DEFAULT_TITLE}`;
+            }
+        }
+
         function playPleasantChime() {
             try {
                 const AudioContext = window.AudioContext || window.webkitAudioContext;
                 const ctx = new AudioContext();
                 
-                // Each chime consists of a double tone (E5 and G#5 notes)
                 // Chime 1 (Starts at 0.0 seconds)
                 createTone(ctx, 659.25, 0.0, 0.4);
                 createTone(ctx, 830.61, 0.08, 0.4);
